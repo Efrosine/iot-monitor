@@ -21,6 +21,7 @@ class DeviceDataController extends Controller
             'device_id' => 'required|string',
             'payload' => 'required|array',
             'name' => 'nullable|string',
+            'is_online' => 'nullable|boolean',
         ]);
 
         // Update or create device data record using Eloquent
@@ -29,7 +30,7 @@ class DeviceDataController extends Controller
             [
                 'name' => $validated['name'] ?? null,
                 'payload' => $validated['payload'],
-                'is_online' => true,
+                'is_online' => $validated['is_online'] ?? true,
             ]
         );
 
