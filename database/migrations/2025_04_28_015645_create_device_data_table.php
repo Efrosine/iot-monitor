@@ -14,9 +14,8 @@ return new class extends Migration {
             $table->id();
             $table->string('device_id')->unique()->index();
             $table->string('name')->nullable();
-            $table->json('data'); // Flexible JSON payload for various sensor data
-            $table->timestamp('last_seen_at')->nullable();
             $table->boolean('is_online')->default(true);
+            $table->json('payload')->nullable();
             $table->timestamps();
         });
     }

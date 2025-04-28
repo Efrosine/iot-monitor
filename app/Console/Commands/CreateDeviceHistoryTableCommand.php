@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Models\DeviceData;
 
 class CreateDeviceHistoryTableCommand extends Command
 {
@@ -28,7 +28,7 @@ class CreateDeviceHistoryTableCommand extends Command
     public function handle()
     {
         $deviceId = $this->argument('device_id');
-        $tableName = "device_{$deviceId}_histories";
+        $tableName = DeviceData::getHistoryTableName($deviceId);
 
         if (Schema::hasTable($tableName)) {
             $this->info("Table {$tableName} already exists.");
@@ -37,15 +37,8 @@ class CreateDeviceHistoryTableCommand extends Command
 
         $this->info("Creating history table for device: {$deviceId}");
 
-        Schema::create($tableName, function ($table) {
-            $table->id();
-            $table->json('data');
-            $table->timestamp('recorded_at');
-            $table->timestamps();
-
-            // Add index on recorded_at for faster time-series queries
-            $table->index('recorded_at');
-        });
+        // Use the model method to create the table for consistency
+        DeviceData::createHistoryTableIfNotExists($deviceId);
 
         $this->info("Table {$tableName} created successfully.");
     }

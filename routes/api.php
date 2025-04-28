@@ -12,3 +12,4 @@ Route::get('/user', function (Request $request) {
 // IoT Device routes
 Route::post('/device-data', [DeviceDataController::class, 'store']);
 Route::get('/device-data/{id}', [DeviceDataController::class, 'show']);
+Route::get('/device-data/{id}/history', [DeviceDataController::class, 'history']);
