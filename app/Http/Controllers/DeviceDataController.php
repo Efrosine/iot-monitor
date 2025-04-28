@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DeviceData;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Carbon;
 
 class DeviceDataController extends Controller
@@ -21,63 +19,43 @@ class DeviceDataController extends Controller
         // Validate incoming request
         $validated = $request->validate([
             'device_id' => 'required|string',
-            'data' => 'required|array',
+            'payload' => 'required|array',
             'name' => 'nullable|string',
         ]);
+
+        // Update or create device data record using Eloquent
+        $deviceData = DeviceData::updateOrCreate(
+            ['device_id' => $validated['device_id']],
+            [
+                'name' => $validated['name'] ?? null,
+                'payload' => $validated['payload'],
+                'is_online' => true,
+            ]
+        );
 
         // Get the current timestamp
         $now = Carbon::now();
 
-        // Update or create device data record
-        DB::table('device_data')->updateOrInsert(
-            ['device_id' => $validated['device_id']],
-            [
-                'name' => $validated['name'] ?? null,
-                'data' => json_encode($validated['data']),
-                'last_seen_at' => $now,
-                'is_online' => true,
-                'updated_at' => $now,
-                'created_at' => DB::raw('IFNULL(created_at, NOW())'),
-            ]
-        );
-
-        // Check if history table exists for this device, if not create it
-        $historyTableName = "device_{$validated['device_id']}_histories";
-
-        if (!Schema::hasTable($historyTableName)) {
-            Artisan::call('device:create-history-table', [
-                'device_id' => $validated['device_id']
-            ]);
-        }
-
         // Check if we need to save to history
-        // Get the latest history entry for this device
-        $latestHistory = DB::table($historyTableName)
-            ->orderBy('recorded_at', 'desc')
-            ->first();
-
         $shouldSaveToHistory = true;
 
-        if ($latestHistory) {
-            $lastRecordedAt = Carbon::parse($latestHistory->recorded_at);
+        // Get the latest history entry for this device
+        $latestHistory = DeviceData::getHistory($validated['device_id'], 1);
+
+        if (count($latestHistory) > 0) {
+            $lastRecordedAt = Carbon::parse($latestHistory[0]->recorded_at);
             // Only save to history if it's been at least 1 minute since the last entry
             $shouldSaveToHistory = $lastRecordedAt->diffInMinutes($now) >= 1;
         }
 
         // If it's time to save to history, do it
         if ($shouldSaveToHistory) {
-            DB::table($historyTableName)->insert([
-                'data' => json_encode($validated['data']),
-                'recorded_at' => $now,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+            $deviceData->saveToHistory();
         }
 
         return response()->json([
             'status' => 'success',
             'message' => 'Data received successfully',
-            'latest_history' => $latestHistory,
             'updated' => $shouldSaveToHistory,
             'timestamp' => $now,
         ]);
@@ -91,9 +69,7 @@ class DeviceDataController extends Controller
      */
     public function show($id)
     {
-        $device = DB::table('device_data')
-            ->where('device_id', $id)
-            ->first();
+        $device = DeviceData::where('device_id', $id)->first();
 
         if (!$device) {
             return response()->json([
@@ -102,12 +78,40 @@ class DeviceDataController extends Controller
             ], 404);
         }
 
-        // Parse JSON data
-        $device->data = json_decode($device->data);
-
         return response()->json([
             'status' => 'success',
             'device' => $device,
+        ]);
+    }
+
+    /**
+     * Get device history data
+     *
+     * @param string $id Device ID
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function history($id, Request $request)
+    {
+        $limit = $request->input('limit', 100);
+
+        // First check if device exists
+        $device = DeviceData::where('device_id', $id)->first();
+
+        if (!$device) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Device not found'
+            ], 404);
+        }
+
+        // Get history data
+        $history = DeviceData::getHistory($id, $limit);
+
+        return response()->json([
+            'status' => 'success',
+            'device_id' => $id,
+            'history' => $history,
         ]);
     }
 }

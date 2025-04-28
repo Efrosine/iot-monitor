@@ -10,57 +10,7 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-    <script>
-        // Function to update device data every 1 second
-        function updateDeviceData() {
-            const deviceCards = document.querySelectorAll('[data-device-id]');
 
-            deviceCards.forEach(card => {
-                const deviceId = card.getAttribute('data-device-id');
-
-                fetch(`/api/device-data/${deviceId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        // Update status indicator
-                        const statusIndicator = card.querySelector('.status');
-                        if (data.is_online) {
-                            statusIndicator.classList.remove('status-error');
-                            statusIndicator.classList.add('status-success');
-                        } else {
-                            statusIndicator.classList.remove('status-success');
-                            statusIndicator.classList.add('status-error');
-                        }
-
-                        // Update last seen time
-                        const lastSeen = card.querySelector('.last-seen');
-                        const lastSeenDate = new Date(data.last_seen_at);
-                        const timeString = lastSeenDate.toLocaleTimeString();
-                        lastSeen.textContent = timeString;
-
-                        // Update device data
-                        const dataContainer = card.querySelector('.device-data');
-                        dataContainer.innerHTML = '';
-
-                        Object.entries(JSON.parse(data.data)).forEach(([key, value]) => {
-                            const dataItem = document.createElement('div');
-                            dataItem.classList.add('flex', 'justify-between', 'mb-1');
-                            dataItem.innerHTML = `
-                                <span class="text-sm opacity-80">${key}:</span>
-                                <span class="text-sm font-semibold">${value}</span>
-                            `;
-                            dataContainer.appendChild(dataItem);
-                        });
-                    })
-                    .catch(error => console.error('Error fetching device data:', error));
-            });
-        }
-
-        // Start periodic updates when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            updateDeviceData();
-            setInterval(updateDeviceData, 1000); // Update every 1 second
-        });
-    </script>
 </head>
 
 <body class="min-h-screen bg-base-200">
@@ -121,13 +71,13 @@
 
                             <div class="text-sm opacity-70 mb-4">
                                 Last seen: <span
-                                    class="last-seen">{{ \Carbon\Carbon::parse($device->last_seen_at)->toTimeString() }}</span>
+                                    class="last-seen">{{ \Carbon\Carbon::parse($device->updated_at)->toTimeString() }}</span>
                             </div>
 
                             <div class="divider my-0"></div>
 
                             <div class="device-data">
-                                @foreach (json_decode($device->data, true) as $key => $value)
+                                @foreach ($device->payload as $key => $value)
                                     <div class="flex justify-between mb-1">
                                         <span class="text-sm opacity-80">{{ $key }}:</span>
                                         <span class="text-sm font-semibold">{{ $value }}</span>
