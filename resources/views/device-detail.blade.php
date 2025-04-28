@@ -84,7 +84,7 @@
                 <div class="card-body">
                     <h2 class="card-title mb-4">Data History</h2>
 
-                    <div class="flex flex-col gap-8">
+                    <div class="flex flex-col gap-8 h-96 overflow-auto">
                         @foreach ($device->payload as $key => $value)
                             <div>
                                 <h3 class="font-medium text-base mb-2">{{ ucfirst($key) }}</h3>
