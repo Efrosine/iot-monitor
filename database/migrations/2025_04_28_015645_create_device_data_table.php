@@ -14,6 +14,7 @@ return new class extends Migration {
             $table->id();
             $table->string('device_id')->unique()->index();
             $table->string('name')->nullable();
+            $table->enum('device_type', ['sensor', 'actuator'])->default('sensor');
             $table->boolean('is_online')->default(true);
             $table->json('payload')->nullable();
             $table->timestamps();
