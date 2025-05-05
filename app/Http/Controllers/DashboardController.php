@@ -16,7 +16,7 @@ class DashboardController extends Controller
     public function index()
     {
         // Get all devices with their latest data using Eloquent model
-        $devices = DeviceData::select('device_id', 'name', 'payload', 'is_online', 'updated_at')
+        $devices = DeviceData::select('device_id', 'name', 'device_type', 'payload', 'is_online', 'updated_at')
             ->orderBy('updated_at', 'desc')
             ->get();
 

@@ -23,6 +23,7 @@ class DeviceData extends Model
     protected $fillable = [
         'device_id',
         'name',
+        'device_type',
         'is_online',
         'payload',
     ];
@@ -51,6 +52,7 @@ class DeviceData extends Model
             Schema::create($tableName, function ($table) {
                 $table->id();
                 $table->json('payload')->nullable();
+                $table->string('device_type')->default('sensor');
                 $table->boolean('is_online')->default(true);
                 $table->timestamp('recorded_at')->default(DB::raw('CURRENT_TIMESTAMP'));
             });
@@ -72,6 +74,7 @@ class DeviceData extends Model
         // Save data to history table
         return DB::table($tableName)->insert([
             'payload' => json_encode($this->payload),
+            'device_type' => $this->device_type,
             'is_online' => $this->is_online,
             'recorded_at' => now(),
         ]);

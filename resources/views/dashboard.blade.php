@@ -60,6 +60,7 @@
                 @foreach ($devices as $device)
                     <div class="card bg-base-100 shadow-xl" data-device-id="{{ $device->device_id }}">
                         <div class="card-body">
+                            
                             <div class="flex justify-between items-center mb-2">
                                 <h2 class="card-title">
                                     {{ $device->name ?? 'Device ' . $device->device_id }}
@@ -67,6 +68,13 @@
                                     </div>
                                 </h2>
                                 <div class="badge badge-neutral">{{ $device->device_id }}</div>
+                            </div>
+
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm opacity-70">Type:</span>
+                                <span class="badge {{ $device->device_type === 'sensor' ? 'badge-info' : 'badge-warning' }}">
+                                    {{ ucfirst($device->device_type ?? 'sensor') }}
+                                </span>
                             </div>
 
                             <div class="text-sm opacity-70 mb-4">
@@ -77,12 +85,31 @@
                             <div class="divider my-0"></div>
 
                             <div class="device-data">
-                                @foreach ($device->payload as $key => $value)
-                                    <div class="flex justify-between mb-1">
-                                        <span class="text-sm opacity-80">{{ $key }}:</span>
-                                        <span class="text-sm font-semibold">{{ $value }}</span>
-                                    </div>
-                                @endforeach
+                               
+                                @if ($device->device_type === 'sensor')
+                                    <!-- Display sensor data as regular text -->
+                                    @foreach ($device->payload as $key => $value)
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-sm opacity-80">{{ $key }}:</span>
+                                            <span class="text-sm font-semibold">{{ $value }}</span>
+                                        </div>
+                                    @endforeach
+                                @else
+                                    <!-- Display actuator data as toggle switches -->
+                                    @foreach ($device->payload as $key => $value)
+                                        <div class="flex justify-between items-center mb-2">
+                                            <span class="text-sm opacity-80">{{ ucfirst($key) }}:</span>
+                                            <label class="swap">
+                                                <input type="checkbox" class="toggle toggle-sm toggle-primary actuator-control"
+                                                    data-device="{{ $device->device_id }}"
+                                                    data-key="{{ $key }}"
+                                                    {{ $value == 'on' ? 'checked' : '' }} />
+                                                <div class="swap-on text-xs text-success ml-1">ON</div>
+                                                <div class="swap-off text-xs text-error ml-1">OFF</div>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                @endif
                             </div>
 
                             <div class="card-actions justify-end mt-4">
@@ -96,6 +123,53 @@
             </div>
         @endif
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add event listeners to all actuator toggles
+            const toggleControls = document.querySelectorAll('.actuator-control');
+            toggleControls.forEach(control => {
+                control.addEventListener('change', function(e) {
+                    const deviceId = this.dataset.device;
+                    const key = this.dataset.key;
+                    const value = this.checked ? 'on' : 'off';
+                    
+                    // Create payload with the current state
+                    const payload = {};
+                    payload[key] = value;
+                    
+                    // Send the update to the server
+                    fetch(`/api/device-data/${deviceId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            device_id: deviceId,
+                            payload: payload,
+                            device_type: 'actuator'
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            console.log('Successfully updated device state');
+                        } else {
+                            console.error('Failed to update device state');
+                            // Revert the toggle if the update failed
+                            this.checked = !this.checked;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Revert the toggle if there was an error
+                        this.checked = !this.checked;
+                    });
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>

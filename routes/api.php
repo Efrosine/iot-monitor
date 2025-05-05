@@ -13,3 +13,6 @@ Route::get('/user', function (Request $request) {
 Route::post('/device-data', [DeviceDataController::class, 'store']);
 Route::get('/device-data/{id}', [DeviceDataController::class, 'show']);
 Route::get('/device-data/{id}/history', [DeviceDataController::class, 'history']);
+Route::post('/device-data/{id}', [DeviceDataController::class, 'update']); // Add new route for updating specific device
+Route::get('/actuator/{id}/status', [DeviceDataController::class, 'getActuatorStatus']); // Get actuator status (on/off)
+Route::get('/actuators', [DeviceDataController::class, 'getAllActuators']); // Get all actuator devices
